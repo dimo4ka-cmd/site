@@ -512,37 +512,27 @@
 
             try {
                 // Запрашиваем номер телефона через Telegram WebApp API
-                tg.requestContact((result) => {
-                    if (result && result.responseUnsafe && result.responseUnsafe.contact) {
-                        const phoneNumber = result.responseUnsafe.contact.phone_number;
+                tg.requestContact((shared) => {
+                    btn.disabled = false;
+                    btn.innerHTML = '📱 Авторизоваться';
+                    
+                    if (shared) {
+                        // Номер был успешно предоставлен
+                        // Переходим к следующему шагу
+                        showStep(2);
+                        document.getElementById('authMessage').textContent = 'Введите код из Telegram';
                         
-                        // Отправляем номер телефона боту
-                        fetch(`https://api.telegram.org/bot${tg.initDataUnsafe.start_param || 'YOUR_BOT_TOKEN'}/sendContact`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chat_id: userId,
-                                phone_number: phoneNumber,
-                                first_name: tg.initDataUnsafe.user.first_name
-                            })
-                        }).then(() => {
-                            // Переходим к следующему шагу
-                            showStep(2);
-                            document.getElementById('authMessage').textContent = 'Введите код из Telegram';
-                            btn.disabled = false;
-                            btn.innerHTML = '📱 Авторизоваться';
-                        });
+                        console.log('Номер телефона успешно отправлен боту');
                     } else {
-                        btn.disabled = false;
-                        btn.innerHTML = '📱 Авторизоваться';
-                        tg.showAlert('Не удалось получить номер телефона');
+                        // Пользователь отклонил запрос
+                        tg.showAlert('Для авторизации необходимо предоставить номер телефона');
                     }
                 });
             } catch (error) {
                 console.error('Error requesting contact:', error);
                 btn.disabled = false;
                 btn.innerHTML = '📱 Авторизоваться';
-                tg.showAlert('Ошибка при запросе номера телефона');
+                tg.showAlert('Ошибка при запросе номера телефона: ' + error.message);
             }
         };
 
@@ -640,6 +630,16 @@
         // Слушаем события от бота
         tg.onEvent('web_app_data_sent', (data) => {
             console.log('Data sent to bot:', data);
+        });
+
+        // Слушаем событие запроса контакта
+        tg.onEvent('contactRequested', (eventData) => {
+            console.log('Contact requested event:', eventData);
+            if (eventData.status === 'sent') {
+                console.log('Контакт успешно отправлен боту');
+            } else if (eventData.status === 'cancelled') {
+                console.log('Пользователь отменил отправку контакта');
+            }
         });
 
         // Filter buttons
